@@ -26,6 +26,15 @@ db.version(3).stores({
     pending_sync: '++id, table, action, data, createdAt' // Cola de cambios pendientes
 });
 
+// Versión 4: Agregar server_id a workdays para sincronización precisa
+db.version(4).stores({
+    products: '++id, name, unit, currentStock, isActive, createdAt',
+    movements: '++id, productId, date, type, [productId+date], createdAt',
+    workdays: '++id, date, status, openedAt, closedAt, responsiblePerson, server_id', // Add server_id index
+    settings: 'key, value, updatedAt',
+    pending_sync: '++id, table, action, data, createdAt'
+});
+
 
 // Inicializar datos por defecto
 export async function initializeDefaultData() {
