@@ -1,17 +1,15 @@
-import pool from './db';
+import getPool from './db';
 
 export default async function handler(request, response) {
-    if (request.method === 'GET') {
-        try {
+    try {
+        const pool = getPool(); // Lazy init
+
+        if (request.method === 'GET') {
             const { rows } = await pool.query('SELECT * FROM products ORDER BY name ASC');
             return response.status(200).json(rows);
-        } catch (error) {
-            return response.status(500).json({ error: error.message });
         }
-    }
 
-    if (request.method === 'POST') {
-        try {
+        if (request.method === 'POST') {
             const { name, unit } = request.body;
             if (!name) throw new Error('Name is required');
 
@@ -20,10 +18,11 @@ export default async function handler(request, response) {
                 [name, unit]
             );
             return response.status(201).json(rows[0]);
-        } catch (error) {
-            return response.status(500).json({ error: error.message });
         }
-    }
 
-    return response.status(405).json({ error: 'Method not allowed' });
+        return response.status(405).json({ error: 'Method not allowed' });
+    } catch (error) {
+        console.error('API Error:', error);
+        return response.status(500).json({ error: error.message });
+    }
 }
