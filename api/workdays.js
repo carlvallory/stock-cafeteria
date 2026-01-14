@@ -1,8 +1,8 @@
-import getPool from './db';
+import { Pool } from '@neondatabase/serverless';
 
 export default async function handler(request, response) {
     try {
-        const pool = getPool(); // Lazy init
+        const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
         if (request.method === 'GET') {
             // Check for open workday
