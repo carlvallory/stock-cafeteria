@@ -1,10 +1,21 @@
 import { useState } from 'react';
-import { adjustStock } from '../services/stockService';
+import {
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Button,
+    TextField,
+    Typography,
+    Box,
+    Alert
+} from '@mui/material';
+import { adjustStock, updateProduct } from '../services/stockService';
 import { validateStock } from '../utils/validators';
-import './AdjustModal.css';
 
 export default function AdjustModal({ product, onClose, onUpdate }) {
     const [newStock, setNewStock] = useState(product?.currentStock || 0);
+    const [productName, setProductName] = useState(product?.name || '');
     const [notes, setNotes] = useState('');
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -17,6 +28,11 @@ export default function AdjustModal({ product, onClose, onUpdate }) {
         e.preventDefault();
         setError('');
 
+        if (!productName || productName.trim().length < 3) {
+            setError('El nombre debe tener al menos 3 caracteres');
+            return;
+        }
+
         const validation = validateStock(newStock);
         if (!validation.valid) {
             setError(validation.error);
@@ -25,8 +41,14 @@ export default function AdjustModal({ product, onClose, onUpdate }) {
 
         setIsSubmitting(true);
         try {
+            if (productName.trim() !== product.name) {
+                await updateProduct(product.id, {
+                    name: productName.trim()
+                });
+            }
+
             await adjustStock(product.id, validation.value, notes);
-            onUpdate?.();
+            if (onUpdate) onUpdate();
             onClose();
         } catch (err) {
             setError(err.message);
@@ -36,80 +58,73 @@ export default function AdjustModal({ product, onClose, onUpdate }) {
     }
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
-                    <h2>Ajustar Stock</h2>
-                    <button className="modal-close" onClick={onClose} aria-label="Cerrar">
-                        ✕
-                    </button>
-                </div>
+        <Dialog open={true} onClose={onClose} maxWidth="sm" fullWidth>
+            <form onSubmit={handleSubmit}>
+                <DialogTitle>Ajustar Producto</DialogTitle>
+                <DialogContent>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                        {error && <Alert severity="error">{error}</Alert>}
 
-                <form onSubmit={handleSubmit}>
-                    <div className="modal-body">
-                        <div className="form-group">
-                            <label>Producto:</label>
-                            <div className="product-info">{product.name}</div>
-                        </div>
+                        <TextField
+                            label="Nombre del Producto"
+                            value={productName}
+                            onChange={(e) => setProductName(e.target.value)}
+                            fullWidth
+                            required
+                            inputProps={{ minLength: 3, maxLength: 100 }}
+                        />
 
-                        <div className="form-group">
-                            <label>Stock actual:</label>
-                            <div className="current-stock">{product.currentStock}</div>
-                        </div>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Typography variant="body1">
+                                Stock actual: <strong>{product.currentStock}</strong>
+                            </Typography>
+                        </Box>
 
-                        <div className="form-group">
-                            <label htmlFor="newStock">Nuevo stock:</label>
-                            <input
-                                id="newStock"
-                                type="number"
-                                value={newStock}
-                                onChange={(e) => setNewStock(Number(e.target.value))}
-                                min="0"
-                                max="9999"
-                                required
-                                autoFocus
-                            />
-                        </div>
+                        <TextField
+                            label="Nuevo Stock"
+                            type="number"
+                            value={String(newStock)}
+                            onChange={(e) => setNewStock(Number(e.target.value))}
+                            fullWidth
+                            required
+                            autoFocus
+                            inputProps={{ min: 0, max: 9999 }}
+                        />
 
                         {difference !== 0 && (
-                            <div className={`difference ${difference > 0 ? 'positive' : 'negative'}`}>
+                            <Typography
+                                variant="body2"
+                                color={difference > 0 ? 'success.main' : 'error.main'}
+                                sx={{ fontWeight: 'bold' }}
+                            >
                                 Diferencia: {difference > 0 ? '+' : ''}{difference} unidades
-                            </div>
+                            </Typography>
                         )}
 
-                        <div className="form-group">
-                            <label htmlFor="notes">Notas (opcional):</label>
-                            <textarea
-                                id="notes"
-                                value={notes}
-                                onChange={(e) => setNotes(e.target.value)}
-                                placeholder="Ej: Reposición de almacén"
-                                rows="3"
-                            />
-                        </div>
-
-                        {error && <div className="error-message">{error}</div>}
-                    </div>
-
-                    <div className="modal-footer">
-                        <button
-                            type="button"
-                            className="button-secondary"
-                            onClick={onClose}
-                            disabled={isSubmitting}
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            type="submit"
-                            className="button-primary"
-                            disabled={isSubmitting}
-                        >
-                            {isSubmitting ? 'Guardando...' : 'Guardar'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                        <TextField
+                            label="Notas (opcional)"
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            multiline
+                            rows={3}
+                            fullWidth
+                            placeholder="Ej: Reposición de almacén"
+                        />
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={onClose} color="inherit" disabled={isSubmitting}>
+                        Cancelar
+                    </Button>
+                    <Button
+                        type="submit"
+                        variant="contained"
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? 'Guardando...' : 'Guardar'}
+                    </Button>
+                </DialogActions>
+            </form>
+        </Dialog>
     );
 }

@@ -17,6 +17,14 @@ db.version(1).stores({
     settings: 'key, value, updatedAt'
 });
 
+// Versión 2: Agregar campo responsiblePerson a workdays
+db.version(2).stores({
+    products: '++id, name, unit, currentStock, isActive, createdAt',
+    movements: '++id, productId, date, type, [productId+date], createdAt',
+    workdays: '++id, date, status, openedAt, closedAt, responsiblePerson',
+    settings: 'key, value, updatedAt'
+});
+
 
 // Inicializar datos por defecto
 export async function initializeDefaultData() {

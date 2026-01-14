@@ -2,39 +2,39 @@ import { db, MovementTypes, WorkdayStatus } from './db';
 import { getCurrentDate, getCurrentTime, getYesterdayDate } from '../utils/dateHelpers';
 import { getActiveProducts } from './stockService';
 
-// Verificar si hay una jornada abierta hoy
+// Verificar si hay una jornada abierta (independiente de la fecha)
 export async function isWorkdayOpen() {
-    const today = getCurrentDate();
-    const workday = await db.workdays
-        .where('date')
-        .equals(today)
+    const activeWorkday = await db.workdays
+        .where('status')
+        .equals(WorkdayStatus.OPEN)
         .first();
 
-    return workday && workday.status === WorkdayStatus.OPEN;
+    return !!activeWorkday;
 }
 
-// Obtener jornada actual
+// Obtener jornada actual (la que está abierta)
 export async function getCurrentWorkday() {
-    const today = getCurrentDate();
     return await db.workdays
-        .where('date')
-        .equals(today)
+        .where('status')
+        .equals(WorkdayStatus.OPEN)
         .first();
 }
 
 // Abrir cafetería
-export async function openCafeteria() {
+export async function openCafeteria(responsiblePerson = '') {
     const today = getCurrentDate();
 
-    // Verificar si ya está abierta
-    const existingWorkday = await db.workdays
-        .where('date')
-        .equals(today)
-        .first();
+    // Verificar si YA hay una jornada abierta (cualquiera)
+    const existingWorkday = await getCurrentWorkday();
 
-    if (existingWorkday && existingWorkday.status === WorkdayStatus.OPEN) {
-        throw new Error('La cafetería ya está abierta hoy');
+    if (existingWorkday) {
+        throw new Error(`Ya hay una jornada abierta (Fecha: ${existingWorkday.date})`);
     }
+
+    // Si existe una jornada cerrada del mismo día (reapertura tras error?), eliminarla o archivarla
+    // En este diseño simple, asumimos que se puede tener múltiples cerradas, pero por limpieza
+    // seguimos la lógica original de borrar duplicados de fecha exactos si se desea, 
+    // pero mejor lo dejamos simple: solo una abierta a la vez.
 
     // Obtener stock actual de todos los productos
     const products = await getActiveProducts();
@@ -49,7 +49,8 @@ export async function openCafeteria() {
         date: today,
         status: WorkdayStatus.OPEN,
         openingStock,
-        openedAt: new Date()
+        openedAt: new Date(),
+        responsiblePerson: responsiblePerson || 'Sin especificar'
     });
 
     // Registrar movimientos de apertura
@@ -72,12 +73,13 @@ export async function openCafeteria() {
 export async function closeCafeteria() {
     const today = getCurrentDate();
 
+    // Buscar la jornada abierta (sin restringir explícitamente por fecha para ser más robusto)
     const workday = await db.workdays
-        .where('date')
-        .equals(today)
+        .where('status')
+        .equals(WorkdayStatus.OPEN)
         .first();
 
-    if (!workday || workday.status === WorkdayStatus.CLOSED) {
+    if (!workday) {
         throw new Error('No hay jornada abierta para cerrar');
     }
 
@@ -112,13 +114,9 @@ export async function closeCafeteria() {
     return workday.id;
 }
 
-// Usar stock del día anterior
-export async function useYesterdayStock() {
-    const yesterday = getYesterdayDate();
-    const lastWorkday = await db.workdays
-        .where('date')
-        .equals(yesterday)
-        .first();
+// Aplicar stock del día anterior
+export async function applyYesterdayStock(responsiblePerson = '') {
+    const lastWorkday = await getLastClosedWorkday();
 
     if (!lastWorkday || !lastWorkday.closingStock) {
         throw new Error('No hay stock del día anterior disponible');
@@ -132,15 +130,15 @@ export async function useYesterdayStock() {
     }
 
     // Abrir con ese stock
-    return await openCafeteria();
+    return await openCafeteria(responsiblePerson);
 }
 
-// Obtener última jornada cerrada
+// Obtener última jornada cerrada (búsqueda robusta por ID)
 export async function getLastClosedWorkday() {
     return await db.workdays
-        .where('status')
-        .equals(WorkdayStatus.CLOSED)
+        .orderBy('id') // Ordenar cronológicamente por creación
         .reverse()
+        .filter(w => w.status === WorkdayStatus.CLOSED)
         .first();
 }
 

@@ -30,6 +30,40 @@
     margin-bottom: var(--spacing-xl);
 }
 
+.responsible-section {
+    margin-bottom: var(--spacing-xl);
+}
+
+.responsible-label {
+    display: block;
+    font-size: var(--font-md);
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: var(--spacing-sm);
+}
+
+.responsible-input {
+    width: 100%;
+    padding: var(--spacing-md);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: var(--font-md);
+    background: var(--color-bg);
+    color: var(--color-text);
+    transition: all var(--transition-base);
+}
+
+.responsible-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.responsible-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .current-stock-section {
     margin-bottom: var(--spacing-xl);
 }

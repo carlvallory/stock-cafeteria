@@ -1,13 +1,23 @@
 import { useState, useEffect } from 'react';
+import {
+    Card,
+    CardContent,
+    Typography,
+    IconButton,
+    Button,
+    Box,
+    Chip,
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
+import TuneIcon from '@mui/icons-material/Tune';
 import { incrementStock, decrementStock } from '../services/stockService';
 import { getStockLevel } from '../services/alertService';
-import './ProductCard.css';
 
 export default function ProductCard({ product, onUpdate }) {
     const [stockLevel, setStockLevel] = useState('good');
     const [isUpdating, setIsUpdating] = useState(false);
 
-    // Cargar nivel de stock al montar
     useEffect(() => {
         loadStockLevel();
     }, [product.id]);
@@ -47,58 +57,104 @@ export default function ProductCard({ product, onUpdate }) {
         }
     }
 
-    function getStockIndicator() {
+    function getStockColor() {
         switch (stockLevel) {
             case 'low':
-                return '🔴';
+                return 'error';
             case 'medium':
-                return '🟡';
+                return 'warning';
             case 'good':
-                return '🟢';
+                return 'success';
             default:
-                return '⚪';
+                return 'default';
         }
     }
 
     return (
-        <div className="product-card">
-            <div className="product-header">
-                <h3 className="product-name">{product.name}</h3>
-                <span className="stock-indicator">{getStockIndicator()}</span>
-            </div>
+        <Card
+            sx={{
+                mb: 2,
+                transition: 'all 0.2s',
+                '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: 3,
+                },
+            }}
+        >
+            <CardContent>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                    <Typography variant="h6" component="h3" fontWeight={600}>
+                        {product.name}
+                    </Typography>
+                    <Chip
+                        label={stockLevel === 'low' ? 'Bajo' : stockLevel === 'medium' ? 'Medio' : 'OK'}
+                        color={getStockColor()}
+                        size="small"
+                    />
+                </Box>
 
-            <div className="stock-controls">
-                <button
-                    className="stock-button decrement"
-                    onClick={handleDecrement}
-                    disabled={isUpdating || product.currentStock === 0}
-                    aria-label="Decrementar stock"
+                <Box
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    gap={2}
+                    mb={2}
                 >
-                    -1
-                </button>
+                    <IconButton
+                        color="warning"
+                        onClick={handleDecrement}
+                        disabled={isUpdating || product.currentStock === 0}
+                        aria-label="Decrementar stock"
+                        sx={{
+                            bgcolor: 'warning.main',
+                            color: 'white',
+                            '&:hover': {
+                                bgcolor: 'warning.dark',
+                            },
+                            '&:disabled': {
+                                bgcolor: 'action.disabledBackground',
+                            },
+                        }}
+                    >
+                        <RemoveIcon />
+                    </IconButton>
 
-                <div className="stock-display">
-                    <span className="stock-value">{product.currentStock}</span>
-                    <span className="stock-unit">{product.unit}</span>
-                </div>
+                    <Box textAlign="center" flex={1}>
+                        <Typography variant="h4" component="div" fontWeight={700}>
+                            {product.currentStock}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            {product.unit}
+                        </Typography>
+                    </Box>
 
-                <button
-                    className="stock-button increment"
-                    onClick={handleIncrement}
+                    <IconButton
+                        color="success"
+                        onClick={handleIncrement}
+                        disabled={isUpdating}
+                        aria-label="Incrementar stock"
+                        sx={{
+                            bgcolor: 'success.main',
+                            color: 'white',
+                            '&:hover': {
+                                bgcolor: 'success.dark',
+                            },
+                        }}
+                    >
+                        <AddIcon />
+                    </IconButton>
+                </Box>
+
+                <Button
+                    variant="outlined"
+                    fullWidth
+                    startIcon={<TuneIcon />}
+                    onClick={() => onUpdate?.(product)}
                     disabled={isUpdating}
-                    aria-label="Incrementar stock"
                 >
-                    +1
-                </button>
-            </div>
-
-            <button
-                className="adjust-button"
-                onClick={() => onUpdate?.(product)}
-                disabled={isUpdating}
-            >
-                Ajustar
-            </button>
-        </div>
+                    Ajustar
+                </Button>
+            </CardContent>
+        </Card>
     );
 }

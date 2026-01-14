@@ -23,7 +23,10 @@ export function getDateDaysAgo(days) {
 
 // Formatear fecha para display (ej: "10 Ene 2024")
 export function formatDisplayDate(dateString) {
-    const date = new Date(dateString);
+    // Parsear manualmente para asegurar que se interprete como hora local y no UTC
+    // "2024-01-13" -> new Date(2024, 0, 13)
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
     return format(date, "d MMM yyyy", { locale: es });
 }
 

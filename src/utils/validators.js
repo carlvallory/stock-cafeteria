@@ -19,12 +19,12 @@ export function validateStock(value) {
 // Validar nombre de producto
 export function validateProductName(name) {
     if (!name || name.trim().length === 0) {
-        return { valid: false, error: 'El nombre no puede estar vacío' };
+        return false;
     }
-    if (name.length > 100) {
-        return { valid: false, error: 'El nombre es demasiado largo (máximo 100 caracteres)' };
+    if (name.length < 3 || name.length > 50) {
+        return false;
     }
-    return { valid: true, value: name.trim() };
+    return true;
 }
 
 // Validar unidad de medida
@@ -36,6 +36,17 @@ export function validateUnit(unit) {
         return { valid: false, error: 'La unidad es demasiado larga (máximo 50 caracteres)' };
     }
     return { valid: true, value: unit.trim() };
+}
+
+// Alias para compatibilidad
+export function validateProductUnit(unit) {
+    if (!unit || unit.trim().length === 0) {
+        return false;
+    }
+    if (unit.length < 2 || unit.length > 20) {
+        return false;
+    }
+    return true;
 }
 
 // Validar porcentaje
