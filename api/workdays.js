@@ -13,7 +13,7 @@ export default async function handler(request, response) {
 
             const limit = parseInt(request.query.limit || '30');
             const { rows } = await pool.query(
-                'SELECT * FROM workdays ORDER BY created_at DESC LIMIT $1',
+                'SELECT * FROM workdays ORDER BY opened_at DESC LIMIT $1',
                 [limit]
             );
             return response.status(200).json(rows);
