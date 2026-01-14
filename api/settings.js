@@ -1,10 +1,9 @@
-import { sql } from '@vercel/postgres';
+import pool from './db';
 
 export default async function handler(request, response) {
     if (request.method === 'GET') {
         try {
-            const { rows } = await sql`SELECT * FROM settings;`;
-            // Convert array of {key, value} to single object for frontend convenience
+            const { rows } = await pool.query('SELECT * FROM settings');
             const settings = {};
             rows.forEach(row => {
                 settings[row.key] = row.value;
@@ -20,14 +19,15 @@ export default async function handler(request, response) {
             const { key, value } = request.body;
             if (!key) throw new Error('Key is required');
 
-            // Upsert
-            const { rows } = await sql`
-        INSERT INTO settings (key, value, updated_at)
-        VALUES (${key}, ${JSON.stringify(value)}, NOW())
-        ON CONFLICT (key) 
-        DO UPDATE SET value = ${JSON.stringify(value)}, updated_at = NOW()
-        RETURNING *;
-      `;
+            // Upsert: INSERT ... ON CONFLICT
+            const { rows } = await pool.query(
+                `INSERT INTO settings (key, value, updated_at) 
+         VALUES ($1, $2, NOW()) 
+         ON CONFLICT (key) 
+         DO UPDATE SET value = $2, updated_at = NOW() 
+         RETURNING *`,
+                [key, JSON.stringify(value)]
+            );
             return response.status(200).json(rows[0]);
         } catch (error) {
             return response.status(500).json({ error: error.message });

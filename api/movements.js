@@ -1,14 +1,13 @@
-import { sql } from '@vercel/postgres';
+import pool from './db';
 
 export default async function handler(request, response) {
     if (request.method === 'GET') {
         try {
-            const limit = request.query.limit || 50;
-            const { rows } = await sql`
-        SELECT * FROM movements 
-        ORDER BY created_at DESC 
-        LIMIT ${limit};
-      `;
+            const limit = parseInt(request.query.limit || '50');
+            const { rows } = await pool.query(
+                'SELECT * FROM movements ORDER BY created_at DESC LIMIT $1',
+                [limit]
+            );
             return response.status(200).json(rows);
         } catch (error) {
             return response.status(500).json({ error: error.message });
@@ -16,27 +15,34 @@ export default async function handler(request, response) {
     }
 
     if (request.method === 'POST') {
-        // Transactional move: Update product and log movement
-        // Note: Vercel Postgres supports transactions.
         try {
             const { productId, type, quantity, date, time, notes } = request.body;
 
-            // We perform two queries. Ideally this should be a transaction.
-            // 1. Update Product
-            await sql`
-        UPDATE products 
-        SET current_stock = current_stock + ${quantity}
-        WHERE id = ${productId};
-      `;
+            // Transactional update: Update product stock AND log movement
+            const client = await pool.connect();
+            try {
+                await client.query('BEGIN');
 
-            // 2. Log Movement
-            const { rows } = await sql`
-        INSERT INTO movements (product_id, date, time, type, quantity, notes)
-        VALUES (${productId}, ${date}, ${time}, ${type}, ${quantity}, ${notes})
-        RETURNING *;
-      `;
+                // 1. Update Product
+                await client.query(
+                    'UPDATE products SET current_stock = current_stock + $1 WHERE id = $2',
+                    [quantity, productId]
+                );
 
-            return response.status(201).json(rows[0]);
+                // 2. Log Movement
+                const { rows } = await client.query(
+                    'INSERT INTO movements (product_id, date, time, type, quantity, notes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+                    [productId, date, time, type, quantity, notes]
+                );
+
+                await client.query('COMMIT');
+                return response.status(201).json(rows[0]);
+            } catch (e) {
+                await client.query('ROLLBACK');
+                throw e;
+            } finally {
+                client.release();
+            }
         } catch (error) {
             return response.status(500).json({ error: error.message });
         }
