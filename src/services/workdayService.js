@@ -1,4 +1,5 @@
 import { db, MovementTypes, WorkdayStatus } from './db';
+import { syncService } from './syncService';
 import { getCurrentDate, getCurrentTime, getYesterdayDate } from '../utils/dateHelpers';
 import { getActiveProducts } from './stockService';
 
@@ -56,7 +57,17 @@ export async function openCafeteria(responsiblePerson = '') {
     // seguimos la lógica original de borrar duplicados de fecha exactos si se desea, 
     // pero mejor lo dejamos simple: solo una abierta a la vez.
 
-    // Obtener stock actual de todos los productos
+    // 1. Sincronizar stock con la nube (Crucial para que Enzo vea lo que cerró Carlos)
+    if (navigator.onLine) {
+        try {
+            console.log('☁️ Bajando stock actualizado del servidor antes de abrir...');
+            await syncService.pullProducts();
+        } catch (error) {
+            console.warn('⚠️ No se pudo actualizar stock nube, usando local:', error);
+        }
+    }
+
+    // 2. Obtener stock actual de todos los productos (ahora actualizado)
     const products = await getActiveProducts();
     const openingStock = {};
 
