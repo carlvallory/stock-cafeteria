@@ -10,12 +10,14 @@ export function useSync() {
         syncService.pushChanges();
         syncService.pullProducts();
         syncService.pullActiveWorkday();
+        syncService.pullRecentWorkdays();
 
         // 2. Sync loop (every 60 seconds - Autopull enabled)
         const intervalId = setInterval(() => {
             syncService.pushChanges();
             syncService.pullProducts(); // Pull regular para ver cambios de otros usuarios
             syncService.pullActiveWorkday(); // Verificar si alguien abrió/cerró caja
+            syncService.pullRecentWorkdays(); // Mantener historial fresco
         }, 60 * 1000);
 
         // 3. Sync when back online
