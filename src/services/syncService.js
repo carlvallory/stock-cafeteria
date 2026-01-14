@@ -63,6 +63,13 @@ export const syncService = {
                     console.warn('🗑️ Eliminando item corrupto por error de FK (ID incorrecto):', item);
                     await db.pending_sync.delete(item.id);
                 }
+
+                // Si intentamos cerrar y da 404, es que ya estaba cerrado (o nunca se abrió).
+                // Asumimos éxito para no bloquear la cola.
+                if (item.action === 'close' && error.message.includes('404')) {
+                    console.warn('⚠️ La jornada ya estaba cerrada en servidor (404). Marcando como completado.', item);
+                    await db.pending_sync.delete(item.id);
+                }
                 // Si es otro error (red, server), se mantiene en la cola para reintentar.
             }
         }

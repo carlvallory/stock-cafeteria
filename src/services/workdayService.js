@@ -257,7 +257,68 @@ export async function closeCafeteria() {
         closingStock[p.id] = p.currentStock;
     });
 
-    // Actualizar jornada
+    // 4. Lógica Híbrida: Online-First para CIERRE
+    if (navigator.onLine) {
+        try {
+            console.log('🌐 Online: Cerrando directamente en servidor...');
+            const response = await fetch('/api/workdays', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'close',
+                    closingStock
+                })
+            });
+
+            if (!response.ok) {
+                // Si da 404, significa que ya estaba cerrado. Lo manejamos como éxito local.
+                if (response.status === 404) {
+                    console.warn('⚠️ Servidor reportó 404 (ya cerrado). Procediendo a cierre local.');
+                } else {
+                    const text = await response.text();
+                    throw new Error(`Error servidor: ${text}`);
+                }
+            } else {
+                const serverResult = await response.json();
+                console.log('✅ Cierre confirmado por servidor:', serverResult);
+            }
+
+            // Éxito Online (o 404 aceptable) -> Actualizar Local SIN pending_sync
+            await db.workdays.update(workday.id, {
+                status: WorkdayStatus.CLOSED,
+                closingStock,
+                closedAt: new Date()
+            });
+
+            // Registrar movimientos de cierre (Local Only por ahora, API no los genera)
+            const movements = [];
+            for (const product of products) {
+                movements.push({
+                    productId: product.id,
+                    date: today,
+                    time: getCurrentTime(),
+                    quantity: product.currentStock,
+                    type: MovementTypes.CLOSING,
+                    notes: 'Cierre de jornada',
+                    createdAt: new Date()
+                });
+            }
+            await db.movements.bulkAdd(movements);
+
+            return workday.id;
+
+        } catch (error) {
+            console.warn('⚠️ Falló cierre directo (Online), intentando fallback offline...', error);
+            if (!error.message.includes('Failed to fetch') && !error.message.includes('NetworkError')) {
+                // Si no es error de red, podría ser lógica, pero en cierre mejor forzar offline fallback 
+                // para asegurar que el usuario pueda irse a casa.
+            }
+        }
+    }
+
+    // --- FALLBACK OFFLINE ---
+
+    // Actualizar jornada local
     await db.workdays.update(workday.id, {
         status: WorkdayStatus.CLOSED,
         closingStock,
@@ -289,6 +350,9 @@ export async function closeCafeteria() {
         },
         createdAt: new Date()
     });
+
+    // Trigger sync
+    syncService.pushChanges();
 
     return workday.id;
 }
