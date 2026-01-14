@@ -22,6 +22,26 @@ export async function getCurrentWorkday() {
 
 // Abrir cafetería
 export async function openCafeteria(responsiblePerson = '') {
+    // 0. Chequeo de Concurrencia (Solo si hay internet)
+    if (navigator.onLine) {
+        try {
+            // Nota: En local necesitas configurar el proxy de Vite o tener el backend corriendo
+            const response = await fetch('/api/workdays?status=open');
+            if (response.ok) {
+                const remoteWorkday = await response.json();
+                if (remoteWorkday) {
+                    throw new Error(`⛔ ¡ALERTA! Ya existe una jornada abierta por: ${remoteWorkday.responsible_person || 'Otro usuario'}. No puedes abrir dos veces.`);
+                }
+            }
+        } catch (error) {
+            // Si es el error de bloqueo, lo lanzamos para detener todo
+            if (error.message.includes('¡ALERTA!')) throw error;
+
+            // Si es error de red, advertimos pero permitimos abrir (Modo Offline)
+            console.warn('⚠️ No se pudo verificar estado online (Modo Offline activo):', error);
+        }
+    }
+
     const today = getCurrentDate();
 
     // Verificar si YA hay una jornada abierta (cualquiera)
