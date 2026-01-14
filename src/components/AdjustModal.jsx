@@ -8,12 +8,17 @@ import {
     TextField,
     Typography,
     Box,
-    Alert
+    Alert,
+    useMediaQuery
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { adjustStock, updateProduct } from '../services/stockService';
 import { validateStock } from '../utils/validators';
 
 export default function AdjustModal({ product, onClose, onUpdate }) {
+    const theme = useTheme();
+    const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+
     const [newStock, setNewStock] = useState(product?.currentStock || 0);
     const [productName, setProductName] = useState(product?.name || '');
     const [notes, setNotes] = useState('');
@@ -58,7 +63,13 @@ export default function AdjustModal({ product, onClose, onUpdate }) {
     }
 
     return (
-        <Dialog open={true} onClose={onClose} maxWidth="sm" fullWidth>
+        <Dialog
+            open={true}
+            onClose={onClose}
+            maxWidth="sm"
+            fullWidth
+            fullScreen={fullScreen}
+        >
             <form onSubmit={handleSubmit}>
                 <DialogTitle>Ajustar Producto</DialogTitle>
                 <DialogContent>

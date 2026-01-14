@@ -14,6 +14,7 @@ import {
     DialogContent,
     DialogContentText,
     DialogActions,
+    Grid,
 } from '@mui/material';
 import HistoryIcon from '@mui/icons-material/History';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -173,19 +174,22 @@ export default function StockPage() {
                         </Button>
                     </Box>
                 ) : (
-                    products.map((product) => (
-                        <ProductCard
-                            key={product.id}
-                            product={product}
-                            onUpdate={(prod) => {
-                                if (prod) {
-                                    setSelectedProduct(prod);
-                                } else {
-                                    refreshAll();
-                                }
-                            }}
-                        />
-                    ))
+                    <Grid container spacing={2}>
+                        {products.map((product) => (
+                            <Grid item xs={12} sm={6} md={4} key={product.id}>
+                                <ProductCard
+                                    product={product}
+                                    onUpdate={(prod) => {
+                                        if (prod) {
+                                            setSelectedProduct(prod);
+                                        } else {
+                                            refreshAll();
+                                        }
+                                    }}
+                                />
+                            </Grid>
+                        ))}
+                    </Grid>
                 )}
             </Box>
 

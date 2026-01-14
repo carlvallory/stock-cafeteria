@@ -2,7 +2,24 @@ import { useState, useEffect, useCallback } from 'react';
 import { getActiveProducts, createProduct, updateProduct, archiveProduct } from '../services/stockService';
 import { validateProductName, validateProductUnit } from '../utils/validators';
 import { useStore } from '../store/useStore';
-import './ConfigPage.css';
+import {
+    Grid,
+    Card,
+    CardContent,
+    CardActions,
+    Button,
+    TextField,
+    Typography,
+    Box,
+    IconButton,
+    Container,
+    Paper
+} from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import AddIcon from '@mui/icons-material/Add';
+// import './ConfigPage.css'; // Removing custom CSS in favor of MUI
 
 export default function ConfigPage({ onBack }) {
     console.log('🔧 ConfigPage loaded - version 2.0');
@@ -96,138 +113,189 @@ export default function ConfigPage({ onBack }) {
     }
 
     return (
-        <div className="config-page">
-            <div className="config-header">
-                <button className="back-button" onClick={onBack}>
-                    ← Volver
-                </button>
-                <h1>Configuración de Productos</h1>
-            </div>
+        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 4 }}>
+            {/* Header */}
+            <Box sx={{ bgcolor: 'white', borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+                <Container maxWidth="md">
+                    <Box sx={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <IconButton onClick={onBack} edge="start" color="primary">
+                                <ArrowBackIcon />
+                            </IconButton>
+                            <Typography variant="h6" component="h1" fontWeight="bold">
+                                Configuración de Productos
+                            </Typography>
+                        </Box>
 
-            {error && (
-                <div className="error-message">{error}</div>
-            )}
-
-            <div className="products-section">
-                <div className="section-header">
-                    <h2>Productos Activos</h2>
-                    <button
-                        className="add-button"
-                        onClick={() => {
-                            setShowAddForm(true);
-                            setEditingId(null);
-                            setFormData({ name: '', unit: '' });
-                            setError('');
-                        }}
-                    >
-                        + Agregar Producto
-                    </button>
-                </div>
-
-                {showAddForm && (
-                    <div className="product-form">
-                        <h3>Nuevo Producto</h3>
-                        <div className="form-group">
-                            <label>Nombre del Producto</label>
-                            <input
-                                type="text"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                placeholder="Ej: Café embotellado"
-                                maxLength={50}
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>Unidad de Medida</label>
-                            <input
-                                type="text"
-                                value={formData.unit}
-                                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                                placeholder="Ej: unidad, litro, kg"
-                                maxLength={20}
-                            />
-                        </div>
-                        <div className="form-actions">
-                            <button className="btn-save" onClick={handleAdd}>
-                                Guardar
-                            </button>
-                            <button className="btn-cancel" onClick={() => {
-                                setShowAddForm(false);
+                        <Button
+                            variant="contained"
+                            startIcon={<AddIcon />}
+                            onClick={() => {
+                                setShowAddForm(true);
+                                setEditingId(null);
                                 setFormData({ name: '', unit: '' });
                                 setError('');
-                            }}>
+                            }}
+                            disabled={showAddForm}
+                        >
+                            Nuevo Producto
+                        </Button>
+                    </Box>
+                </Container>
+            </Box>
+
+            <Container maxWidth="md">
+                {error && (
+                    <Paper
+                        sx={{
+                            p: 2,
+                            mb: 3,
+                            bgcolor: 'error.light',
+                            color: 'error.contrastText'
+                        }}
+                    >
+                        {error}
+                    </Paper>
+                )}
+
+                {/* Add Form */}
+                {showAddForm && (
+                    <Card sx={{ mb: 4, overflow: 'visible' }} elevation={3}>
+                        <CardContent>
+                            <Typography variant="h6" gutterBottom>Nuevo Producto</Typography>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12} sm={8}>
+                                    <TextField
+                                        label="Nombre del Producto"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        placeholder="Ej: Café embotellado"
+                                        fullWidth
+                                        variant="outlined"
+                                        inputProps={{ maxLength: 50 }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={4}>
+                                    <TextField
+                                        label="Unidad"
+                                        value={formData.unit}
+                                        onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                                        placeholder="Ej: unidad"
+                                        fullWidth
+                                        variant="outlined"
+                                        inputProps={{ maxLength: 20 }}
+                                    />
+                                </Grid>
+                            </Grid>
+                        </CardContent>
+                        <CardActions sx={{ justifyContent: 'flex-end', p: 2, pt: 0 }}>
+                            <Button
+                                onClick={() => {
+                                    setShowAddForm(false);
+                                    setFormData({ name: '', unit: '' });
+                                    setError('');
+                                }}
+                                color="inherit"
+                            >
                                 Cancelar
-                            </button>
-                        </div>
-                    </div>
+                            </Button>
+                            <Button
+                                onClick={handleAdd}
+                                variant="contained"
+                            >
+                                Guardar
+                            </Button>
+                        </CardActions>
+                    </Card>
                 )}
 
-                <div className="products-list">
-                    {products.map(product => (
-                        <div key={product.id} className="product-item">
-                            {editingId === product.id ? (
-                                <div className="product-form">
-                                    <div className="form-group">
-                                        <label>Nombre</label>
-                                        <input
-                                            type="text"
-                                            value={formData.name}
-                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                            maxLength={50}
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Unidad</label>
-                                        <input
-                                            type="text"
-                                            value={formData.unit}
-                                            onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                                            maxLength={20}
-                                        />
-                                    </div>
-                                    <div className="form-actions">
-                                        <button className="btn-save" onClick={() => handleUpdate(product.id)}>
-                                            Guardar
-                                        </button>
-                                        <button className="btn-cancel" onClick={cancelEdit}>
-                                            Cancelar
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="product-info">
-                                        <h3>{product.name}</h3>
-                                        <p className="product-unit">{product.unit}</p>
-                                        <p className="product-stock">Stock actual: {product.currentStock}</p>
-                                    </div>
-                                    <div className="product-actions">
-                                        <button
-                                            className="btn-edit"
-                                            onClick={() => startEdit(product)}
-                                        >
-                                            ✏️ Editar
-                                        </button>
-                                        <button
-                                            className="btn-delete"
-                                            onClick={() => handleDelete(product.id)}
-                                        >
-                                            🗑️ Eliminar
-                                        </button>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    ))}
-                </div>
+                {/* Products List */}
+                <Typography variant="h6" gutterBottom sx={{ mt: 4, mb: 2 }}>
+                    Productos Activos ({products.length})
+                </Typography>
 
-                {products.length === 0 && (
-                    <div className="empty-state">
-                        <p>No hay productos configurados.</p>
-                        <p>Agrega tu primer producto usando el botón de arriba.</p>
-                    </div>
+                {products.length === 0 && !showAddForm ? (
+                    <Box sx={{ textAlign: 'center', py: 8, bgcolor: 'background.paper', borderRadius: 2 }}>
+                        <Typography variant="body1" color="text.secondary">
+                            No hay productos configurados.
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                            Agrega tu primer producto usando el botón superior.
+                        </Typography>
+                    </Box>
+                ) : (
+                    <Grid container spacing={2}>
+                        {products.map(product => (
+                            <Grid item xs={12} sm={6} key={product.id}>
+                                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                                    <CardContent sx={{ flexGrow: 1 }}>
+                                        {editingId === product.id ? (
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                                <TextField
+                                                    label="Nombre"
+                                                    value={formData.name}
+                                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                                    fullWidth
+                                                    size="small"
+                                                />
+                                                <TextField
+                                                    label="Unidad"
+                                                    value={formData.unit}
+                                                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                                                    fullWidth
+                                                    size="small"
+                                                />
+                                            </Box>
+                                        ) : (
+                                            <>
+                                                <Typography variant="h6" component="div">
+                                                    {product.name}
+                                                </Typography>
+                                                <Typography sx={{ mb: 1.5 }} color="text.secondary">
+                                                    Unidad: {product.unit}
+                                                </Typography>
+                                                <Typography variant="body2">
+                                                    Stock actual: <strong>{product.currentStock}</strong>
+                                                </Typography>
+                                            </>
+                                        )}
+                                    </CardContent>
+                                    <CardActions sx={{ justifyContent: 'flex-end' }}>
+                                        {editingId === product.id ? (
+                                            <>
+                                                <Button size="small" onClick={cancelEdit} color="inherit">
+                                                    Cancelar
+                                                </Button>
+                                                <Button size="small" onClick={() => handleUpdate(product.id)} variant="contained">
+                                                    Guardar
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Button
+                                                    size="small"
+                                                    startIcon={<EditIcon />}
+                                                    onClick={() => startEdit(product)}
+                                                >
+                                                    Editar
+                                                </Button>
+                                                <Button
+                                                    size="small"
+                                                    startIcon={<DeleteIcon />}
+                                                    onClick={() => handleDelete(product.id)}
+                                                    color="error"
+                                                >
+                                                    Eliminar
+                                                </Button>
+                                            </>
+                                        )}
+                                    </CardActions>
+                                </Card>
+                            </Grid>
+                        ))}
+                    </Grid>
                 )}
-            </div>
-        </div>
+            </Container>
+        </Box>
     );
 }

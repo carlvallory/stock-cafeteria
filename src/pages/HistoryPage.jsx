@@ -3,7 +3,33 @@ import { getClosedWorkdaysInRange } from '../services/workdayService';
 import { getMovementsByDate } from '../services/stockService';
 import { formatDisplayDate, formatDisplayTime, getCurrentDate, getDateDaysAgo } from '../utils/dateHelpers';
 import { db } from '../services/db';
-import './HistoryPage.css';
+import {
+    Container,
+    Box,
+    Typography,
+    Button,
+    IconButton,
+    Grid,
+    Card,
+    CardContent,
+    CardActionArea,
+    TextField,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    Stack,
+    Chip,
+    CircularProgress,
+    useMediaQuery,
+    Divider
+} from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import DownloadIcon from '@mui/icons-material/Download';
+import EventIcon from '@mui/icons-material/Event';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import PersonIcon from '@mui/icons-material/Person';
+// import './HistoryPage.css';
 
 export default function HistoryPage({ onBack }) {
     const [workdays, setWorkdays] = useState([]);
@@ -120,129 +146,207 @@ export default function HistoryPage({ onBack }) {
         }
     }
 
+    const theme = useTheme();
+    const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+
     if (loading) {
         return (
-            <div className="history-page">
-                <div className="loading">Cargando historial...</div>
-            </div>
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <CircularProgress />
+            </Box>
         );
     }
 
     return (
-        <div className="history-page">
-            <div className="history-header">
-                <button className="back-button" onClick={onBack}>
-                    ← Volver
-                </button>
-                <h1>Historial de Jornadas</h1>
-            </div>
+        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 4 }}>
+            {/* Header */}
+            <Box sx={{ bgcolor: 'white', borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+                <Container maxWidth="md">
+                    <Box sx={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <IconButton onClick={onBack} edge="start" color="primary">
+                                <ArrowBackIcon />
+                            </IconButton>
+                            <Typography variant="h6" component="h1" fontWeight="bold">
+                                Historial de Jornadas
+                            </Typography>
+                        </Box>
+                    </Box>
+                </Container>
+            </Box>
 
-            <div className="history-filters">
-                <div className="filter-group">
-                    <label>Desde:</label>
-                    <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                    />
-                </div>
-                <div className="filter-group">
-                    <label>Hasta:</label>
-                    <input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                    />
-                </div>
-                <div className="filter-group">
-                    <label>Responsable:</label>
-                    <input
-                        type="text"
-                        placeholder="Filtrar por nombre..."
-                        value={responsibleFilter}
-                        onChange={(e) => setResponsibleFilter(e.target.value)}
-                    />
-                </div>
-                <button className="export-button" onClick={handleExportCSV}>
-                    📊 Exportar CSV
-                </button>
-            </div>
-
-            <div className="history-summary">
-                <p>Mostrando {filteredWorkdays.length} jornada(s)</p>
-            </div>
-
-            <div className="workdays-list">
-                {filteredWorkdays.length === 0 ? (
-                    <div className="empty-state">
-                        <p>No hay jornadas en el rango seleccionado</p>
-                    </div>
-                ) : (
-                    filteredWorkdays.map(workday => (
-                        <div key={workday.id} className="workday-card">
-                            <div className="workday-main">
-                                <div className="workday-date">
-                                    <span className="date-label">{formatDisplayDate(workday.date)}</span>
-                                    <span className="responsible-name">
-                                        👤 {workday.responsiblePerson || 'Sin especificar'}
-                                    </span>
-                                </div>
-                                <div className="workday-times">
-                                    <span>🕐 {formatDisplayTime(new Date(workday.openedAt).toTimeString().split(' ')[0])}</span>
-                                    <span>→</span>
-                                    <span>🕐 {formatDisplayTime(new Date(workday.closedAt).toTimeString().split(' ')[0])}</span>
-                                </div>
-                            </div>
-                            <button
-                                className="view-details-button"
-                                onClick={() => handleViewDetails(workday)}
+            <Container maxWidth="md">
+                {/* Filters */}
+                <Card sx={{ mb: 3 }} elevation={2}>
+                    <CardContent>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-end">
+                            <TextField
+                                label="Desde"
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                InputLabelProps={{ shrink: true }}
+                                fullWidth
+                            />
+                            <TextField
+                                label="Hasta"
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                InputLabelProps={{ shrink: true }}
+                                fullWidth
+                            />
+                            <TextField
+                                label="Responsable"
+                                placeholder="Filtrar por nombre..."
+                                value={responsibleFilter}
+                                onChange={(e) => setResponsibleFilter(e.target.value)}
+                                fullWidth
+                            />
+                            <Button
+                                variant="outlined"
+                                startIcon={<DownloadIcon />}
+                                onClick={handleExportCSV}
+                                fullWidth
+                                sx={{ height: 56 }}
                             >
-                                Ver Detalle
-                            </button>
-                        </div>
-                    ))
+                                Exportar
+                            </Button>
+                        </Stack>
+                    </CardContent>
+                </Card>
+
+                {/* Summary */}
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Mostrando {filteredWorkdays.length} jornada(s)
+                </Typography>
+
+                {/* Grid */}
+                {filteredWorkdays.length === 0 ? (
+                    <Box sx={{ textAlign: 'center', py: 8 }}>
+                        <Typography color="text.secondary">
+                            No hay jornadas en el rango seleccionado
+                        </Typography>
+                    </Box>
+                ) : (
+                    <Grid container spacing={2}>
+                        {filteredWorkdays.map(workday => (
+                            <Grid item xs={12} sm={6} key={workday.id}>
+                                <Card>
+                                    <CardActionArea onClick={() => handleViewDetails(workday)}>
+                                        <CardContent>
+                                            <Stack spacing={1}>
+                                                <Stack direction="row" alignItems="center" spacing={1}>
+                                                    <EventIcon color="primary" fontSize="small" />
+                                                    <Typography variant="subtitle1" fontWeight="bold">
+                                                        {formatDisplayDate(workday.date)}
+                                                    </Typography>
+                                                </Stack>
+
+                                                <Stack direction="row" alignItems="center" spacing={1}>
+                                                    <PersonIcon color="action" fontSize="small" />
+                                                    <Typography variant="body2" color="text.secondary">
+                                                        {workday.responsiblePerson || 'Sin especificar'}
+                                                    </Typography>
+                                                </Stack>
+
+                                                <Divider />
+
+                                                <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 1 }}>
+                                                    <AccessTimeIcon fontSize="small" color="action" />
+                                                    <Typography variant="body2">
+                                                        {formatDisplayTime(new Date(workday.openedAt).toTimeString().split(' ')[0])}
+                                                        {' → '}
+                                                        {formatDisplayTime(new Date(workday.closedAt).toTimeString().split(' ')[0])}
+                                                    </Typography>
+                                                </Stack>
+                                            </Stack>
+                                        </CardContent>
+                                    </CardActionArea>
+                                </Card>
+                            </Grid>
+                        ))}
+                    </Grid>
                 )}
-            </div>
+            </Container>
 
+            {/* Detail Dialog */}
             {selectedWorkday && (
-                <div className="modal-overlay" onClick={() => setSelectedWorkday(null)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2>Detalle de Jornada</h2>
-                            <button className="modal-close" onClick={() => setSelectedWorkday(null)}>
-                                ✕
-                            </button>
-                        </div>
-                        <div className="modal-body">
-                            <div className="detail-section">
-                                <h3>Información General</h3>
-                                <p><strong>Fecha:</strong> {formatDisplayDate(selectedWorkday.date)}</p>
-                                <p><strong>Responsable:</strong> {selectedWorkday.responsiblePerson || 'Sin especificar'}</p>
-                                <p><strong>Apertura:</strong> {new Date(selectedWorkday.openedAt).toLocaleString('es')}</p>
-                                <p><strong>Cierre:</strong> {new Date(selectedWorkday.closedAt).toLocaleString('es')}</p>
-                            </div>
+                <Dialog
+                    open={Boolean(selectedWorkday)}
+                    onClose={() => setSelectedWorkday(null)}
+                    fullScreen={fullScreen}
+                    maxWidth="md"
+                    fullWidth
+                >
+                    <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        Detalle de Jornada
+                        <Button onClick={() => setSelectedWorkday(null)}>Cerrar</Button>
+                    </DialogTitle>
+                    <Divider />
+                    <DialogContent>
+                        <Grid container spacing={2} sx={{ mb: 4 }}>
+                            <Grid item xs={6} sm={3}>
+                                <Typography variant="caption" color="text.secondary">Fecha</Typography>
+                                <Typography variant="body1">{formatDisplayDate(selectedWorkday.date)}</Typography>
+                            </Grid>
+                            <Grid item xs={6} sm={3}>
+                                <Typography variant="caption" color="text.secondary">Responsable</Typography>
+                                <Typography variant="body1">{selectedWorkday.responsiblePerson || '-'}</Typography>
+                            </Grid>
+                            <Grid item xs={6} sm={3}>
+                                <Typography variant="caption" color="text.secondary">Apertura</Typography>
+                                <Typography variant="body1">{new Date(selectedWorkday.openedAt).toLocaleTimeString()}</Typography>
+                            </Grid>
+                            <Grid item xs={6} sm={3}>
+                                <Typography variant="caption" color="text.secondary">Cierre</Typography>
+                                <Typography variant="body1">{new Date(selectedWorkday.closedAt).toLocaleTimeString()}</Typography>
+                            </Grid>
+                        </Grid>
 
-                            <div className="detail-section">
-                                <h3>Movimientos del Día ({movements.length})</h3>
-                                <div className="movements-list">
-                                    {movements.length === 0 ? (
-                                        <p className="empty-message">No hay movimientos registrados</p>
-                                    ) : (
-                                        movements.map((mov, idx) => (
-                                            <div key={idx} className="movement-item">
-                                                <span className="movement-time">{mov.time}</span>
-                                                <span className="movement-type">{mov.type}</span>
-                                                <span className="movement-quantity">{mov.quantity}</span>
-                                                {mov.notes && <span className="movement-notes">{mov.notes}</span>}
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                        <Typography variant="h6" gutterBottom>Movimientos ({movements.length})</Typography>
+                        <Stack spacing={1}>
+                            {movements.length === 0 ? (
+                                <Typography color="text.secondary">No hay movimientos registrados</Typography>
+                            ) : (
+                                movements.map((mov, idx) => (
+                                    <Card key={idx} variant="outlined">
+                                        <CardContent sx={{ py: 1, '&:last-child': { pb: 1 } }}>
+                                            <Grid container alignItems="center">
+                                                <Grid item xs={3}>
+                                                    <Typography variant="body2" color="text.secondary">
+                                                        {mov.time}
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item xs={3}>
+                                                    <Chip
+                                                        label={mov.type}
+                                                        size="small"
+                                                        color={mov.type === 'RESTOCK' ? 'success' : 'default'}
+                                                        variant="outlined"
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={2} sx={{ textAlign: 'right' }}>
+                                                    <Typography fontWeight="bold">
+                                                        {mov.quantity > 0 ? '+' : ''}{mov.quantity}
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item xs={4} sx={{ pl: 2 }}>
+                                                    {mov.notes && (
+                                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.2 }}>
+                                                            {mov.notes}
+                                                        </Typography>
+                                                    )}
+                                                </Grid>
+                                            </Grid>
+                                        </CardContent>
+                                    </Card>
+                                ))
+                            )}
+                        </Stack>
+                    </DialogContent>
+                </Dialog>
             )}
-        </div>
+        </Box>
     );
 }
