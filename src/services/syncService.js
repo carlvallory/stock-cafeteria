@@ -172,5 +172,55 @@ export const syncService = {
         } catch (error) {
             console.error('Error pulling workday status:', error);
         }
+    },
+
+    // 4. Sincronizar Historial Reciente (Pull Closed Workdays)
+    pullRecentWorkdays: async () => {
+        if (!navigator.onLine) return;
+
+        try {
+            const response = await fetch(`${API_Base}/workdays?limit=5`);
+            if (response.ok) {
+                const recentSessions = await response.json();
+
+                await db.transaction('rw', db.workdays, async () => {
+                    for (const session of recentSessions) {
+                        // Solo nos importan las cerradas para el historial
+                        if (session.status === 'closed') {
+                            const existing = await db.workdays
+                                .where('server_id').equals(session.id)
+                                .or('date').equals(new Date(session.date).toISOString().split('T')[0]) // Fallback por fecha
+                                .first();
+
+                            if (!existing) {
+                                // Insertar historial
+                                await db.workdays.add({
+                                    date: new Date(session.date).toISOString().split('T')[0],
+                                    status: 'closed',
+                                    openedAt: new Date(session.opened_at),
+                                    closedAt: new Date(session.closed_at),
+                                    responsiblePerson: session.responsible_person,
+                                    openingStock: session.opening_stock,
+                                    closingStock: session.closing_stock,
+                                    server_id: session.id
+                                });
+                            } else {
+                                // Actualizar (por si el cierre ocurrió después de mi última sync)
+                                if (JSON.stringify(existing.closingStock) !== JSON.stringify(session.closing_stock)) {
+                                    await db.workdays.update(existing.id, {
+                                        status: 'closed',
+                                        closedAt: new Date(session.closed_at),
+                                        closingStock: session.closing_stock
+                                    });
+                                }
+                            }
+                        }
+                    }
+                });
+                console.log('📚 Historial reciente sincronizado.');
+            }
+        } catch (e) {
+            console.error('Error pulling recent workdays:', e);
+        }
     }
 };
