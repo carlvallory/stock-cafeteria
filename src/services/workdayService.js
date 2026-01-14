@@ -175,10 +175,17 @@ export async function closeCafeteria() {
 
 // Aplicar stock del día anterior
 export async function applyYesterdayStock(responsiblePerson = '') {
+    // 1. Sincronizar primero
+    if (navigator.onLine) {
+        try {
+            await syncService.pullProducts();
+        } catch (e) { console.warn('Sync failed', e); }
+    }
+
     const lastWorkday = await getLastClosedWorkday();
 
     if (!lastWorkday || !lastWorkday.closingStock) {
-        throw new Error('No hay stock del día anterior disponible');
+        throw new Error('No hay stock del cierre anterior disponible');
     }
 
     // Actualizar stock actual con el del cierre anterior

@@ -165,7 +165,7 @@ export default function OpeningPage({ onOpen }) {
                         disabled={isOpening}
                         startIcon={<CoffeeIcon />}
                     >
-                        {isOpening ? 'Abriendo...' : 'Abrir con Stock Actual'}
+                        {isOpening ? 'Sincronizando...' : 'Sincronizar y Abrir'}
                     </Button>
 
                     {lastWorkday && lastWorkday.closingStock && (
@@ -178,7 +178,7 @@ export default function OpeningPage({ onOpen }) {
                             startIcon={<HistoryIcon />}
                         >
                             <Box>
-                                <div>Usar Stock del Día Anterior</div>
+                                <div>Usar Último Stock Guardado</div>
                                 <Typography variant="caption" display="block">
                                     Cierre: {formatDisplayDate(lastWorkday.date)} -{' '}
                                     {formatDisplayTime(new Date(lastWorkday.closedAt).toTimeString().split(' ')[0])}
