@@ -54,8 +54,16 @@ export const syncService = {
 
             } catch (error) {
                 console.error('❌ Error sincronizando item:', item, error);
-                // No borramos el item, se reintentará en la próxima sincronización
-                // Opcional: Implementar contador de reintentos para evitar bucles infinitos
+
+                // Estrategia de recuperación de errores:
+                // Si es un error de integridad referencial (FK), significa que el ID local no coincide con el remoto.
+                // Esto pasa a veces en la primera sincronización si hubo datos creados offline antes de tener IDs reales.
+                // En este caso, eliminamos la tarea para no atascar la cola.
+                if (error.message.includes('foreign key constraint') || error.message.includes('violates foreign key')) {
+                    console.warn('🗑️ Eliminando item corrupto por error de FK (ID incorrecto):', item);
+                    await db.pending_sync.delete(item.id);
+                }
+                // Si es otro error (red, server), se mantiene en la cola para reintentar.
             }
         }
     },
