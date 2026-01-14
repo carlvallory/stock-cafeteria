@@ -89,7 +89,110 @@ export async function openCafeteria(responsiblePerson = '') {
         openingStock[p.id] = p.currentStock;
     });
 
-    // Crear jornada
+    // 3. Lógica Híbrida: Online-First (Consistencia) vs Offline-First (Disponibilidad)
+    // Para "Abrir Caja", priorizamos Consistencia para evitar conflictos críticos (dos cajas abiertas).
+
+    if (navigator.onLine) {
+        try {
+            console.log('🌐 Online: Intentando abrir directamente en servidor...');
+            const response = await fetch('/api/workdays', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'open',
+                    date: today,
+                    responsiblePerson: responsiblePerson || 'Sin especificar',
+                    openingStock
+                })
+            });
+
+            if (response.status === 409) {
+                throw new Error('⛔ ¡ALERTA! Ya existe una jornada abierta en el servidor. Alguien te ganó de mano.');
+            }
+
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`Error servidor: ${text}`);
+            }
+
+            const serverWorkday = await response.json();
+            console.log('✅ Apertura confirmada por servidor:', serverWorkday);
+
+            // Guardar en local SOLAMENTE (sin pending_sync porque ya está en nube)
+            const workdayId = await db.workdays.add({
+                date: today,
+                status: WorkdayStatus.OPEN,
+                openingStock,
+                openedAt: new Date(),
+                responsiblePerson: responsiblePerson || 'Sin especificar',
+                // Guardamos el ID del servidor si fuera posible para mapeo, 
+                // pero por ahora Dexie usa su propio ID auto-inc.
+                // Lo importante es que NO agregamos a pending_sync.
+            });
+
+            // Registrar movimientos localmente (sin pending_sync para no duplicar, 
+            // PERO espera... "Movimientos de Apertura" no se crean en el servidor automáticamente 
+            // con el endpoint /workdays? Revisemos la API.
+            // La API /workdays SOLO crea el registro en workdays table.
+            // NO crea los movimientos en movements table automáticamente?
+            // Revisando api/workdays.js...
+            // SOLO hace INSERT INTO workdays.
+            // Ok, entonces los movimientos de apertura SÍ hay que subirlos.
+            // Pero "Abrir Caja" en sí mismo ya está hecho.
+
+            // CORRECTO: Los movimientos de "Stock Inicial" son separados.
+            // Vamos a crearlos y encolarlos para sync normal.
+            const movements = [];
+            for (const product of products) {
+                movements.push({
+                    productId: product.id,
+                    date: today,
+                    time: getCurrentTime(),
+                    quantity: product.currentStock,
+                    type: MovementTypes.OPENING,
+                    notes: 'Apertura de jornada',
+                    createdAt: new Date()
+                });
+            }
+            await db.movements.bulkAdd(movements);
+
+            // Encolar SOLO los movimientos
+            const movementSyncItems = movements.map(m => ({
+                table: 'movements', // Ojo: Si usamos 'movements' en api, hace update de stock. 
+                // Stock inicial NO DEBE sumar stock, solo registrar el hito.
+                // Nuestra API actual /movements hace UPDATE products SET stock + quantity.
+                // ERROR DE DISEÑO: El movimiento de "Apertura" (Opening) NO debería alterar el stock numérica,
+                // solo es un Snapshot.
+                // Si mandamos quantity=50 a /movements, sumará 50 al stock que ya es 50 -> 100.
+                // FIX: Movimientos de tipo OPENING no deberían mandarse a la API de /movements normal
+                // o la API debería ignorar el update de stock para ese tipo.
+
+                // Por ahora, para arreglar el problema de concurrencia, nos enfocamos en que
+                // WORKDAYS (la sesión) está creada.
+
+                // Si la API no crea movimientos, dejémoslo así.
+                // Simplemente NO sincronizamos los movimientos de apertura al server para evitar duplicar stock.
+                // Solo guardamos en local para historial visual.
+            }));
+
+            return workdayId;
+
+        } catch (error) {
+            // Si falló por 409 (Conflicto), relanzar error para bloquear UI
+            if (error.message.includes('¡ALERTA!')) throw error;
+
+            console.warn('⚠️ Falló apertura directa (Online), intentando fallback offline si es error de red...', error);
+            // Si es error de red real, caemos al bloque de abajo. Si es 500, también (riesgoso pero necesario para robustez).
+            if (!error.message.includes('Failed to fetch') && !error.message.includes('NetworkError')) {
+                throw error; // Si es error de lógica, reventar.
+            }
+        }
+    }
+
+    // --- FALLBACK OFFLINE (Lógica original) ---
+    // Solo llegamos aquí si no hay internet o falló el fetch
+
+    // Crear jornada local
     const workdayId = await db.workdays.add({
         date: today,
         status: WorkdayStatus.OPEN,
@@ -98,7 +201,7 @@ export async function openCafeteria(responsiblePerson = '') {
         responsiblePerson: responsiblePerson || 'Sin especificar'
     });
 
-    // Registrar movimientos de apertura
+    // Registrar movimientos localmente
     const movements = [];
     for (const product of products) {
         movements.push({
@@ -113,7 +216,7 @@ export async function openCafeteria(responsiblePerson = '') {
     }
     await db.movements.bulkAdd(movements);
 
-    // Enqueue Sync
+    // Enqueue Sync DE LA JORNADA
     await db.pending_sync.add({
         table: 'workdays',
         action: 'open',
@@ -125,6 +228,9 @@ export async function openCafeteria(responsiblePerson = '') {
         },
         createdAt: new Date()
     });
+
+    // Forzar intento de sync
+    syncService.pushChanges();
 
     return workdayId;
 }
