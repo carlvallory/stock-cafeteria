@@ -231,10 +231,21 @@ export default function HistoryPage({ onBack }) {
                 ) : (
                     <Grid container spacing={2}>
                         {filteredWorkdays.map(workday => (
-                            <Grid item xs={12} sm={6} key={workday.id}>
-                                <Card>
-                                    <CardActionArea onClick={() => handleViewDetails(workday)}>
-                                        <CardContent>
+                            <Grid
+                                item
+                                xs={12} sm={6} md={4} lg={3}
+                                key={workday.id}
+                                sx={{
+                                    flexBasis: { xs: '100%', sm: '50%', md: '33.333%', lg: '25%' },
+                                    maxWidth: { xs: '100%', sm: '50%', md: '33.333%', lg: '25%' }
+                                }}
+                            >
+                                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                                    <CardActionArea
+                                        onClick={() => handleViewDetails(workday)}
+                                        sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }}
+                                    >
+                                        <CardContent sx={{ flexGrow: 1, width: '100%' }}>
                                             <Stack spacing={1}>
                                                 <Stack direction="row" alignItems="center" spacing={1}>
                                                     <EventIcon color="primary" fontSize="small" />

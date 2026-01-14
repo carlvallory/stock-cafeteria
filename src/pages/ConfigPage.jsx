@@ -239,7 +239,17 @@ export default function ConfigPage({ onBack }) {
                 ) : (
                     <Grid container spacing={2}>
                         {products.map(product => (
-                            <Grid item xs={12} sm={6} key={product.id}>
+                            <Grid
+                                item
+                                xs={12} sm={6} md={6} lg={6}
+                                key={product.id}
+                                sx={{
+                                    flexGrow: 0,
+                                    flexShrink: 0,
+                                    flexBasis: { xs: '100%', sm: 'calc(50% - 1px)', md: 'calc(50% - 1px)', lg: 'calc(50% - 1px)' },
+                                    maxWidth: { xs: '100%', sm: 'calc(50% - 1px)', md: 'calc(50% - 1px)', lg: 'calc(50% - 1px)' }
+                                }}
+                            >
                                 <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                                     <CardContent sx={{ flexGrow: 1 }}>
                                         {editingId === product.id ? (

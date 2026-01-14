@@ -104,7 +104,7 @@ export default function OpeningPage({ onOpen }) {
     }
 
     return (
-        <Container maxWidth="sm" sx={{ mt: { xs: 2, sm: 4 }, mb: 4, px: { xs: 1, sm: 2 } }}>
+        <Container maxWidth="sm" sx={{ mt: { xs: 2, sm: 4 }, mb: 4, px: { xs: 2, sm: 2 }, width: '100%' }}>
             <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 }, borderRadius: { xs: 2, sm: 4 }, width: '100%' }}>
                 <Box textAlign="center" mb={3}>
                     <CoffeeIcon sx={{ fontSize: 60, color: 'primary.main', mb: 1 }} />
