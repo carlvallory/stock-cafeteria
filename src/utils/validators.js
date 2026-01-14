@@ -43,7 +43,7 @@ export function validateProductUnit(unit) {
     if (!unit || unit.trim().length === 0) {
         return false;
     }
-    if (unit.length < 2 || unit.length > 20) {
+    if (unit.length < 1 || unit.length > 20) {
         return false;
     }
     return true;

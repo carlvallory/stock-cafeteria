@@ -34,19 +34,23 @@ export default function ConfigPage({ onBack }) {
     }, [loadProducts]);
 
     async function handleAdd() {
+        console.log('📝 Intentando agregar:', formData);
         setError('');
 
         if (!validateProductName(formData.name)) {
+            console.warn('❌ Nombre inválido:', formData.name);
             setError('El nombre debe tener entre 3 y 50 caracteres');
             return;
         }
 
         if (!validateProductUnit(formData.unit)) {
-            setError('La unidad debe tener entre 2 y 20 caracteres');
+            console.warn('❌ Unidad inválida:', formData.unit);
+            setError('La unidad debe tener entre 1 y 20 caracteres');
             return;
         }
 
         try {
+            console.log('🚀 Llamando a createProduct...');
             await createProduct(formData.name, formData.unit);
             setFormData({ name: '', unit: '' });
             setShowAddForm(false);
@@ -115,15 +119,22 @@ export default function ConfigPage({ onBack }) {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 4 }}>
             {/* Header */}
-            <Box sx={{ bgcolor: 'white', borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-                <Container maxWidth="md">
-                    <Box sx={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <IconButton onClick={onBack} edge="start" color="primary">
+            <Box sx={{ bgcolor: 'white', borderBottom: 1, borderColor: 'divider', mb: { xs: 2, sm: 3 } }}>
+                <Container maxWidth="md" sx={{ px: { xs: 1, sm: 2 } }}>
+                    <Box sx={{
+                        py: 2,
+                        display: 'flex',
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        alignItems: { xs: 'stretch', sm: 'center' },
+                        justifyContent: 'space-between',
+                        gap: 2
+                    }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <IconButton onClick={onBack} edge="start" color="primary" size="small">
                                 <ArrowBackIcon />
                             </IconButton>
                             <Typography variant="h6" component="h1" fontWeight="bold">
-                                Configuración de Productos
+                                Configuración
                             </Typography>
                         </Box>
 
@@ -137,6 +148,8 @@ export default function ConfigPage({ onBack }) {
                                 setError('');
                             }}
                             disabled={showAddForm}
+                            fullWidth={false}
+                            sx={{ width: { xs: '100%', sm: 'auto' } }}
                         >
                             Nuevo Producto
                         </Button>
@@ -144,7 +157,7 @@ export default function ConfigPage({ onBack }) {
                 </Container>
             </Box>
 
-            <Container maxWidth="md">
+            <Container maxWidth="md" sx={{ px: { xs: 1, sm: 2 } }}>
                 {error && (
                     <Paper
                         sx={{

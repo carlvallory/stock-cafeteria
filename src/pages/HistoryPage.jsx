@@ -161,21 +161,21 @@ export default function HistoryPage({ onBack }) {
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 4 }}>
             {/* Header */}
             <Box sx={{ bgcolor: 'white', borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-                <Container maxWidth="md">
+                <Container maxWidth="md" sx={{ px: { xs: 1, sm: 2 } }}>
                     <Box sx={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                             <IconButton onClick={onBack} edge="start" color="primary">
                                 <ArrowBackIcon />
                             </IconButton>
                             <Typography variant="h6" component="h1" fontWeight="bold">
-                                Historial de Jornadas
+                                Historial
                             </Typography>
                         </Box>
                     </Box>
                 </Container>
             </Box>
 
-            <Container maxWidth="md">
+            <Container maxWidth="md" sx={{ px: { xs: 1, sm: 2 } }}>
                 {/* Filters */}
                 <Card sx={{ mb: 3 }} elevation={2}>
                     <CardContent>
