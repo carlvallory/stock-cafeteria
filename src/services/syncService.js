@@ -10,6 +10,20 @@ export const syncService = {
         const pendingItems = await db.pending_sync.toArray();
         if (pendingItems.length === 0) return;
 
+        // Ordenar por prioridad de dependencias:
+        // 1. Products (padres)
+        // 2. Settings / Workdays
+        // 3. Movements (hijos de products)
+        // Dentro de cada grupo, respetar orden cronológico
+        pendingItems.sort((a, b) => {
+            const tableOrder = { 'products': 1, 'settings': 2, 'workdays': 3, 'movements': 4 };
+            const orderA = tableOrder[a.table] || 99;
+            const orderB = tableOrder[b.table] || 99;
+
+            if (orderA !== orderB) return orderA - orderB;
+            return a.id - b.id; // Cronológico si es la misma tabla
+        });
+
         console.log(`📡 Sincronizando ${pendingItems.length} cambios pendientes...`);
 
         for (const item of pendingItems) {
