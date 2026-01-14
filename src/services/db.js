@@ -17,12 +17,13 @@ db.version(1).stores({
     settings: 'key, value, updatedAt'
 });
 
-// Versión 2: Agregar campo responsiblePerson a workdays
-db.version(2).stores({
+// Versión 3: Agregar tabla de cola de sincronización (Offline-First)
+db.version(3).stores({
     products: '++id, name, unit, currentStock, isActive, createdAt',
     movements: '++id, productId, date, type, [productId+date], createdAt',
     workdays: '++id, date, status, openedAt, closedAt, responsiblePerson',
-    settings: 'key, value, updatedAt'
+    settings: 'key, value, updatedAt',
+    pending_sync: '++id, table, action, data, createdAt' // Cola de cambios pendientes
 });
 
 

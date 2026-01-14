@@ -54,8 +54,9 @@ export async function openCafeteria(responsiblePerson = '') {
     });
 
     // Registrar movimientos de apertura
+    const movements = [];
     for (const product of products) {
-        await db.movements.add({
+        movements.push({
             productId: product.id,
             date: today,
             time: getCurrentTime(),
@@ -65,6 +66,20 @@ export async function openCafeteria(responsiblePerson = '') {
             createdAt: new Date()
         });
     }
+    await db.movements.bulkAdd(movements);
+
+    // Enqueue Sync
+    await db.pending_sync.add({
+        table: 'workdays',
+        action: 'open',
+        data: {
+            action: 'open',
+            date: today,
+            responsiblePerson: responsiblePerson || 'Sin especificar',
+            openingStock
+        },
+        createdAt: new Date()
+    });
 
     return workdayId;
 }
@@ -99,8 +114,9 @@ export async function closeCafeteria() {
     });
 
     // Registrar movimientos de cierre
+    const movements = [];
     for (const product of products) {
-        await db.movements.add({
+        movements.push({
             productId: product.id,
             date: today,
             time: getCurrentTime(),
@@ -110,6 +126,18 @@ export async function closeCafeteria() {
             createdAt: new Date()
         });
     }
+    await db.movements.bulkAdd(movements);
+
+    // Enqueue Sync
+    await db.pending_sync.add({
+        table: 'workdays',
+        action: 'close',
+        data: {
+            action: 'close',
+            closingStock
+        },
+        createdAt: new Date()
+    });
 
     return workday.id;
 }

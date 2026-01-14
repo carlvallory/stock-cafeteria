@@ -6,16 +6,30 @@ export async function incrementStock(productId) {
     const product = await db.products.get(productId);
     if (!product) throw new Error('Producto no encontrado');
 
+    // Modificar BD local
     await db.products.update(productId, {
         currentStock: product.currentStock + 1
     });
 
-    await db.movements.add({
+    const movementData = {
         productId,
         date: getCurrentDate(),
         time: getCurrentTime(),
         quantity: 1,
         type: MovementTypes.RESTOCK,
+        createdAt: new Date()
+    };
+
+    await db.movements.add(movementData);
+
+    // Enqueue Sync
+    await db.pending_sync.add({
+        table: 'movements',
+        action: 'create',
+        data: {
+            ...movementData,
+            notes: 'Reposición (Sync)'
+        },
         createdAt: new Date()
     });
 
@@ -29,16 +43,31 @@ export async function decrementStock(productId) {
 
     const newStock = Math.max(0, product.currentStock - 1);
 
+    // Modificar BD local
     await db.products.update(productId, {
         currentStock: newStock
     });
 
-    await db.movements.add({
+    const movementData = {
         productId,
         date: getCurrentDate(),
         time: getCurrentTime(),
         quantity: -1,
         type: MovementTypes.SALE,
+        createdAt: new Date()
+    };
+
+    await db.movements.add(movementData);
+
+    // Enqueue Sync (Offline-First)
+    // 1. Update Product on Server
+    await db.pending_sync.add({
+        table: 'movements', // We use 'movements' endpoint which handles stock update transactionally in Vercel
+        action: 'create',
+        data: {
+            ...movementData,
+            notes: 'Venta (Sync)'
+        },
         createdAt: new Date()
     });
 

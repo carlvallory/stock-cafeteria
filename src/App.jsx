@@ -8,9 +8,11 @@ import { useStore } from './store/useStore';
 import StockPage from './pages/StockPage';
 import OpeningPage from './pages/OpeningPage';
 import theme from './theme';
+import { useSync } from './hooks/useSync';
 import './App.css';
 
 function App() {
+  useSync(); // Enable background sync
   const { workdayOpen, checkWorkdayStatus } = useStore();
   const [loading, setLoading] = useState(true);
   const initialized = useRef(false);
