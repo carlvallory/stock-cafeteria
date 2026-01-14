@@ -113,6 +113,7 @@ export const syncService = {
                 }
             });
             console.log('✅ Productos sincronizados del servidor.');
+            window.dispatchEvent(new Event('cafeteria:stock-updated'));
         } catch (error) {
             console.error('Error pulling products:', error);
         }
