@@ -9,11 +9,13 @@ export function useSync() {
         // 1. Sync on mount (if online)
         syncService.pushChanges();
         syncService.pullProducts();
+        syncService.pullActiveWorkday();
 
         // 2. Sync loop (every 60 seconds - Autopull enabled)
         const intervalId = setInterval(() => {
             syncService.pushChanges();
             syncService.pullProducts(); // Pull regular para ver cambios de otros usuarios
+            syncService.pullActiveWorkday(); // Verificar si alguien abrió/cerró caja
         }, 60 * 1000);
 
         // 3. Sync when back online
@@ -21,6 +23,7 @@ export function useSync() {
             console.log('🌐 Online detected. Syncing...');
             syncService.pushChanges();
             syncService.pullProducts();
+            syncService.pullActiveWorkday();
         };
 
         // 4. Listen for sync updates to refresh UI
@@ -29,13 +32,20 @@ export function useSync() {
             refreshAll();
         };
 
+        const handleRemoteLock = (event) => {
+            // Actualizar estado de bloqueo en el store
+            useStore.getState().setRemoteLock(event.detail);
+        };
+
         window.addEventListener('online', handleOnline);
         window.addEventListener('cafeteria:stock-updated', handleStockUpdate);
+        window.addEventListener('cafeteria:remote-lock', handleRemoteLock);
 
         return () => {
             clearInterval(intervalId);
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('cafeteria:stock-updated', handleStockUpdate);
+            window.removeEventListener('cafeteria:remote-lock', handleRemoteLock);
         };
     }, [refreshAll]);
 }

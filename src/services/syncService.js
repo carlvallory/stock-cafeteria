@@ -117,5 +117,60 @@ export const syncService = {
         } catch (error) {
             console.error('Error pulling products:', error);
         }
+    },
+
+    // 3. Sincronizar Estado de la Jornada (Solo detectar BLOQUEO)
+    // NO Auto-Join. Solo avisar a la UI si hay alguien más trabajando.
+    pullActiveWorkday: async () => {
+        if (!navigator.onLine) return;
+
+        try {
+            const response = await fetch(`${API_Base}/workdays?status=open`);
+            if (response.ok) {
+                const remoteWorkday = await response.json();
+
+                // Buscar jornada abierta local
+                const localOpen = await db.workdays.where({ status: 'open' }).first();
+
+                // CASO 1: Servidor tiene abierta, Local NO -> BLOQUEO (Lock)
+                // Carlos tiene abierta, Enzo está en la pantalla de inicio.
+                // Avisamos a la UI para que deshabilite los botones de "Abrir".
+                if (remoteWorkday && !localOpen) {
+                    console.log('🔒 Detectada sesión remota activa (Bloqueo):', remoteWorkday.responsible_person);
+                    window.dispatchEvent(new CustomEvent('cafeteria:remote-lock', {
+                        detail: {
+                            isLocked: true,
+                            responsible: remoteWorkday.responsible_person
+                        }
+                    }));
+                }
+                // CASO 1.5: Servidor NO tiene abierta, Local NO -> DESBLOQUEO
+                else if (!remoteWorkday && !localOpen) {
+                    window.dispatchEvent(new CustomEvent('cafeteria:remote-lock', {
+                        detail: { isLocked: false, responsible: null }
+                    }));
+                }
+
+                // CASO 2: Servidor NO tiene abierta, Local SÍ -> Auto-Close (Sync Close)
+                // Si alguien cerró remotamente (o forzado), cerramos aquí también.
+                if (!remoteWorkday && localOpen) {
+                    // Verificar si tenemos un "Abrir" pendiente nos protegemos de auto-cerrar prematuramente
+                    const pendingOpens = await db.pending_sync
+                        .where({ table: 'workdays', action: 'open' })
+                        .count();
+
+                    if (pendingOpens === 0) {
+                        console.log('📥 La sesión remota fue cerrada. Cerrando localmente...');
+                        await db.workdays.update(localOpen.id, {
+                            status: 'closed',
+                            closedAt: new Date()
+                        });
+                        window.dispatchEvent(new Event('cafeteria:stock-updated'));
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error pulling workday status:', error);
+        }
     }
 };

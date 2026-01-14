@@ -10,7 +10,9 @@ export const useStore = create((set, get) => ({
     currentWorkday: null,
     lowStockAlerts: [],
     loading: false,
+    loading: false,
     error: null,
+    remoteLock: { isLocked: false, responsible: null }, // Nuevo estado de bloqueo remoto
 
     // Acciones
     loadProducts: async () => {
@@ -51,5 +53,6 @@ export const useStore = create((set, get) => ({
     },
 
     setError: (error) => set({ error }),
-    clearError: () => set({ error: null })
+    clearError: () => set({ error: null }),
+    setRemoteLock: (lockInfo) => set({ remoteLock: lockInfo })
 }));
