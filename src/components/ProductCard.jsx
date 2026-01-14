@@ -74,6 +74,7 @@ export default function ProductCard({ product, onUpdate }) {
         <Card
             sx={{
                 mb: 2,
+                width: '100%',
                 transition: 'all 0.2s',
                 '&:hover': {
                     transform: 'translateY(-2px)',

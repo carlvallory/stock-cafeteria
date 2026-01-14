@@ -166,7 +166,6 @@ export default function StockPage() {
                             No hay productos activos
                         </Typography>
                         <Button
-                            variant="outlined"
                             onClick={() => setShowConfig(true)}
                             sx={{ mt: 2 }}
                         >
@@ -174,22 +173,24 @@ export default function StockPage() {
                         </Button>
                     </Box>
                 ) : (
-                    <Grid container spacing={2}>
-                        {products.map((product) => (
-                            <Grid item xs={12} sm={6} md={4} key={product.id}>
-                                <ProductCard
-                                    product={product}
-                                    onUpdate={(prod) => {
-                                        if (prod) {
-                                            setSelectedProduct(prod);
-                                        } else {
-                                            refreshAll();
-                                        }
-                                    }}
-                                />
-                            </Grid>
-                        ))}
-                    </Grid>
+                    <Container maxWidth="md" sx={{ pb: 10, px: { xs: 2, sm: 2 } }}>
+                        <Grid container spacing={2}>
+                            {products.map((product) => (
+                                <Grid item xs={12} sm={6} md={4} key={product.id} sx={{ width: '100%' }}>
+                                    <ProductCard
+                                        product={product}
+                                        onUpdate={(prod) => {
+                                            if (prod) {
+                                                setSelectedProduct(prod);
+                                            } else {
+                                                refreshAll();
+                                            }
+                                        }}
+                                    />
+                                </Grid>
+                            ))}
+                        </Grid>
+                    </Container>
                 )}
             </Box>
 
