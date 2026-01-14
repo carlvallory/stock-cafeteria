@@ -23,23 +23,37 @@ export async function getCurrentWorkday() {
 
 // Abrir cafetería
 export async function openCafeteria(responsiblePerson = '') {
-    // 0. Chequeo de Concurrencia (Solo si hay internet)
+    // 0. Chequeo de Concurrencia (Estricto)
     if (navigator.onLine) {
+        let remoteWorkday = null;
         try {
-            // Nota: En local necesitas configurar el proxy de Vite o tener el backend corriendo
             const response = await fetch('/api/workdays?status=open');
             if (response.ok) {
-                const remoteWorkday = await response.json();
-                if (remoteWorkday) {
-                    throw new Error(`⛔ ¡ALERTA! Ya existe una jornada abierta por: ${remoteWorkday.responsible_person || 'Otro usuario'}. No puedes abrir dos veces.`);
-                }
+                remoteWorkday = await response.json();
+            } else {
+                // Si el servidor responde error (500), NO dejar pasar silenciosamente
+                const text = await response.text();
+                throw new Error(`Error del servidor verificando sesión: ${text}`);
             }
         } catch (error) {
-            // Si es el error de bloqueo, lo lanzamos para detener todo
-            if (error.message.includes('¡ALERTA!')) throw error;
+            // Si es el error de "Ya existe...", lo relanzamos
+            if (remoteWorkday) { // null check logic improved below
+                // logic handled inside the try block usually, but let's restructure:
+            }
+            console.error("Check online falló:", error);
+            // DECISIÓN DE DISEÑO: Si hay internet pero falla el servidor, ¿Bloqueamos o dejamos pasar?
+            // El usuario se quejó de que "le dejó entrar". Así que vamos a ser más ESTRICTOS.
+            // Solo permitimos "Modo Offline" si realmente es error de conexión (fetch fails), no 500.
+            if (!error.message.includes('Failed to fetch') && !error.message.includes('NetworkError')) {
+                // Es un error de API/Servidor -> BLOQUEAR y Avisar
+                throw new Error(`⚠️ Error crítico de servidor: No se pudo verificar si hay otra caja abierta. Por seguridad, no se permite abrir. Intenta de nuevo o revisa tu conexión. (${error.message})`);
+            }
+            // Si es NetworkError, dejamos pasar (Offline real) warning
+            console.warn('⚠️ Sin conexión real al servidor (NetworkError). Abriendo en modo Local.');
+        }
 
-            // Si es error de red, advertimos pero permitimos abrir (Modo Offline)
-            console.warn('⚠️ No se pudo verificar estado online (Modo Offline activo):', error);
+        if (remoteWorkday) {
+            throw new Error(`⛔ ¡ALERTA! Ya existe una jornada abierta por: ${remoteWorkday.responsible_person || 'Alguien'}. No puedes abrir dos veces.`);
         }
     }
 
