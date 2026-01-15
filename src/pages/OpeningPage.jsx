@@ -43,21 +43,21 @@ export default function OpeningPage({ onOpen }) {
                     await syncService.pullActiveWorkday();
                     // Sincronizar historial reciente ANTES de cargar último cierre
                     await syncService.pullRecentWorkdays();
+                    // Sincronizar productos para tener stock actualizado
+                    await syncService.pullProducts();
                 }
 
-                // 2. Cargar último cierre para botón de historial
+                // 2. Cargar productos frescos en el store (para que la UI se actualice)
+                await loadProducts();
+
+                // 3. Cargar último cierre para botón de historial
                 const lastWd = await getLastClosedWorkday();
                 setLastWorkday(lastWd);
                 console.log('📋 Último cierre cargado:', lastWd);
 
-                // 3. Recuperar nombre
+                // 4. Recuperar nombre
                 const lastPerson = localStorage.getItem('lastResponsiblePerson');
                 if (lastPerson) setResponsiblePerson(lastPerson);
-
-                // 4. Cargar productos si faltan
-                if (!products || products.length === 0) {
-                    await loadProducts();
-                }
             } catch (e) {
                 console.error("Error init OpeningPage:", e);
             } finally {
