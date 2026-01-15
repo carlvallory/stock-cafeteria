@@ -79,14 +79,28 @@ export default function OpeningPage({ onOpen }) {
         try {
             if (navigator.onLine) {
                 const { syncService } = await import('../services/syncService');
+                const { db } = await import('../services/db');
+
                 await syncService.pushChanges();
                 await syncService.pullProducts();
                 await syncService.pullRecentWorkdays();
-                await loadProducts();
 
                 // Recargar último cierre después de sync
                 const lastWd = await getLastClosedWorkday();
                 setLastWorkday(lastWd);
+
+                // Aplicar el stock del último cierre a los productos actuales
+                if (lastWd && lastWd.closingStock) {
+                    console.log('📦 Aplicando último stock guardado a productos:', lastWd.closingStock);
+                    for (const [productId, stock] of Object.entries(lastWd.closingStock)) {
+                        await db.products.update(Number(productId), {
+                            currentStock: stock
+                        });
+                    }
+                }
+
+                // Recargar productos en el store para actualizar UI
+                await loadProducts();
 
                 alert('✅ Sincronización completada');
             } else {
