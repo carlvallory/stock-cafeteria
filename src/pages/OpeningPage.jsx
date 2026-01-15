@@ -74,30 +74,40 @@ export default function OpeningPage({ onOpen }) {
     const isLocked = remoteLock?.isLocked;
     const lockedBy = remoteLock?.responsible || 'Otro usuario';
 
-    async function handleOpenWithCurrentStock() {
-        if (!responsiblePerson.trim()) {
-            alert('Por favor ingresa el nombre de la persona responsable');
-            return;
-        }
-
+    async function handleSyncOnly() {
         setIsOpening(true);
         try {
-            await openCafeteria(responsiblePerson.trim());
-            localStorage.setItem('lastResponsiblePerson', responsiblePerson.trim());
-            const { useStore } = await import('../store/useStore');
-            await useStore.getState().refreshAll();
-            onOpen?.();
+            if (navigator.onLine) {
+                const { syncService } = await import('../services/syncService');
+                await syncService.pushChanges();
+                await syncService.pullProducts();
+                await syncService.pullRecentWorkdays();
+                await loadProducts();
+
+                // Recargar último cierre después de sync
+                const lastWd = await getLastClosedWorkday();
+                setLastWorkday(lastWd);
+
+                alert('✅ Sincronización completada');
+            } else {
+                alert('⚠️ No hay conexión a internet. No se puede sincronizar.');
+            }
         } catch (error) {
-            console.error('Error opening cafeteria:', error);
-            alert('Error al abrir cafetería: ' + error.message);
+            console.error('Error syncing:', error);
+            alert('Error al sincronizar: ' + error.message);
         } finally {
             setIsOpening(false);
         }
     }
 
-    async function handleUseYesterdayStock() {
+    async function handleOpenWithLastStock() {
         if (!responsiblePerson.trim()) {
             alert('Por favor ingresa el nombre de la persona responsable');
+            return;
+        }
+
+        if (!lastWorkday || !lastWorkday.closingStock) {
+            alert('⚠️ No hay stock guardado disponible. Sincroniza primero.');
             return;
         }
 
@@ -109,8 +119,8 @@ export default function OpeningPage({ onOpen }) {
             await useStore.getState().refreshAll();
             onOpen?.();
         } catch (error) {
-            console.error('Error using yesterday stock:', error);
-            alert('Error al usar stock del día anterior: ' + error.message);
+            console.error('Error opening with last stock:', error);
+            alert('Error al abrir con último stock: ' + error.message);
         } finally {
             setIsOpening(false);
         }
@@ -193,34 +203,32 @@ export default function OpeningPage({ onOpen }) {
 
                 <Box display="flex" flexDirection="column" gap={2}>
                     <Button
+                        variant="outlined"
+                        size="large"
+                        fullWidth
+                        onClick={handleSyncOnly}
+                        disabled={isOpening || isLocked}
+                        startIcon={<CoffeeIcon />}
+                    >
+                        {isOpening ? 'Sincronizando...' : 'Sincronizar Datos'}
+                    </Button>
+
+                    <Button
                         variant="contained"
                         size="large"
                         fullWidth
-                        onClick={handleOpenWithCurrentStock}
-                        disabled={isOpening || isLocked}
+                        onClick={handleOpenWithLastStock}
+                        disabled={isOpening || isLocked || !lastWorkday}
                         startIcon={isLocked ? <LockIcon /> : <CoffeeIcon />}
                         color={isLocked ? "inherit" : "primary"}
                     >
-                        {isOpening ? 'Sincronizando...' : isLocked ? `Bloqueado por ${lockedBy}` : 'Sincronizar y Abrir'}
+                        {isOpening ? 'Abriendo...' : isLocked ? `Bloqueado por ${lockedBy}` : 'Abrir Sesión'}
                     </Button>
 
                     {lastWorkday && lastWorkday.closingStock && (
-                        <Button
-                            variant="outlined"
-                            size="large"
-                            fullWidth
-                            onClick={handleUseYesterdayStock}
-                            disabled={isOpening || isLocked}
-                            startIcon={isLocked ? <LockIcon /> : <HistoryIcon />}
-                        >
-                            <Box>
-                                <div>Usar Último Stock Guardado</div>
-                                <Typography variant="caption" display="block">
-                                    Cierre: {formatDisplayDate(lastWorkday.date)} -{' '}
-                                    {formatDisplayTime(new Date(lastWorkday.closedAt).toTimeString().split(' ')[0])}
-                                </Typography>
-                            </Box>
-                        </Button>
+                        <Typography variant="caption" color="text.secondary" textAlign="center">
+                            Último cierre: {formatDisplayDate(lastWorkday.date)} - {formatDisplayTime(new Date(lastWorkday.closedAt).toTimeString().split(' ')[0])}
+                        </Typography>
                     )}
                 </Box>
             </Paper>
