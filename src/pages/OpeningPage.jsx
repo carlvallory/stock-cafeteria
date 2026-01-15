@@ -41,11 +41,14 @@ export default function OpeningPage({ onOpen }) {
                 if (navigator.onLine) {
                     const { syncService } = await import('../services/syncService');
                     await syncService.pullActiveWorkday();
+                    // Sincronizar historial reciente ANTES de cargar último cierre
+                    await syncService.pullRecentWorkdays();
                 }
 
                 // 2. Cargar último cierre para botón de historial
                 const lastWd = await getLastClosedWorkday();
                 setLastWorkday(lastWd);
+                console.log('📋 Último cierre cargado:', lastWd);
 
                 // 3. Recuperar nombre
                 const lastPerson = localStorage.getItem('lastResponsiblePerson');
